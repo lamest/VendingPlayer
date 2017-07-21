@@ -14,22 +14,18 @@ namespace VendingPlayer
     public class MainActivity : Activity
     {
         private const string _filePathKey = "FilePath";
+        private IUIHider _uiHider;
 
         protected override void OnCreate(Bundle bundle)
         {
             base.OnCreate(bundle);
+            _uiHider = UIHiderFabric.GetHider();
+            _uiHider.Subscribe(Window);
 
             //final PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
             //this.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
             //this.mWakeLock.acquire();
             SetContentView(Resource.Layout.Main);
-
-            Window.AddFlags(WindowManagerFlags.KeepScreenOn |
-                            WindowManagerFlags.DismissKeyguard |
-                            WindowManagerFlags.ShowWhenLocked |
-                            WindowManagerFlags.TurnScreenOn |
-                            WindowManagerFlags.Fullscreen);
-
 
             var videoView = FindViewById<VideoView>(Resource.Id.MainVideoView);
 
@@ -39,6 +35,15 @@ namespace VendingPlayer
             videoView.Error += OnError;
             videoView.Touch += OnTouch;
             videoView.KeepScreenOn = true;
+        }
+
+        protected override void OnResume()
+        {
+            base.OnResume();
+
+            _uiHider.Hide(Window);
+            var videoView = FindViewById<VideoView>(Resource.Id.MainVideoView);
+            videoView.Start();
         }
 
         private void OnTouch(object sender, View.TouchEventArgs e)
