@@ -15,6 +15,8 @@ namespace VendingPlayer
     {
         private const string _filePathKey = "FilePath";
         private IUIHider _uiHider;
+        private FilePickerFragment _filePicker;
+        private VideoView _videoView;
 
         protected override void OnCreate(Bundle bundle)
         {
@@ -27,48 +29,60 @@ namespace VendingPlayer
             //this.mWakeLock.acquire();
             SetContentView(Resource.Layout.Main);
 
-            var videoView = FindViewById<VideoView>(Resource.Id.MainVideoView);
 
-            SetFile(videoView);
-            videoView.Start();
-            videoView.Completion += OnCompletion;
-            videoView.Error += OnError;
-            videoView.Touch += OnTouch;
-            videoView.KeepScreenOn = true;
-        }
+            _filePicker = new FilePickerFragment();
+            _filePicker.FileSelected += (sender1, path) =>
+            {
+                try
+                {
+                    SetFile(_videoView, path);
+                    SaveFilePath(path);
+                    _videoView.Start();
+                }
+                catch (Exception ex)
+                {
 
-        protected override void OnResume()
-        {
-            base.OnResume();
+                }
+            };
+            _filePicker.Cancel += sender2 => _filePicker.Dismiss();
 
-            _uiHider.Hide(Window);
-            var videoView = FindViewById<VideoView>(Resource.Id.MainVideoView);
-            videoView.Start();
+            _videoView = FindViewById<VideoView>(Resource.Id.MainVideoView);
+
+            try
+            {
+                if (SetFile(_videoView))
+                {
+                    _videoView.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+
+            _videoView.Completion += OnCompletion;
+            _videoView.Error += OnError;
+            _videoView.Touch += OnTouch;
+            _videoView.KeepScreenOn = true;
         }
 
         private void OnTouch(object sender, View.TouchEventArgs e)
         {
             if (e.Event.Action == MotionEventActions.Up)
             {
-                var videoView = sender as VideoView;
-
-                ShowFilePickerDialog(videoView);
+                ShowFilePickerDialog();
             }
         }
 
-        private void SetFile(VideoView videoView, string path = null)
+        private bool SetFile(VideoView videoView, string path = null)
         {
-            string filePath;
-            if (path == null)
+            var filePath = path ?? GetDefaultFilePath();
+            if (string.IsNullOrWhiteSpace(filePath))
             {
-                filePath = GetDefaultFilePath();
-            }
-            else
-            {
-                filePath = path;
+                return false;
             }
             var uri = Uri.Parse(filePath);
             videoView.SetVideoURI(uri);
+            return true;
         }
 
         private string GetDefaultFilePath()
@@ -85,23 +99,16 @@ namespace VendingPlayer
 
         private void OnError(object sender, MediaPlayer.ErrorEventArgs e)
         {
-            var videoView = sender as VideoView;
-
-            ShowFilePickerDialog(videoView);
+            ShowFilePickerDialog();
         }
 
-        private void ShowFilePickerDialog(VideoView videoView)
+        private void ShowFilePickerDialog()
         {
-            var filePickerFragment = new FilePickerFragment();
-            filePickerFragment.FileSelected += (sender1, path) =>
+            if (_filePicker.IsVisible)
             {
-                filePickerFragment.Dismiss();
-                SetFile(videoView, path);
-                SaveFilePath(path);
-                videoView.Start();
-            };
-            filePickerFragment.Cancel += sender2 => filePickerFragment.Dismiss();
-            filePickerFragment.Show(FragmentManager, "FilePicker");
+                _filePicker.Dismiss();
+            }
+            _filePicker.Show(base.FragmentManager, "FilePicker");
         }
 
         private void SaveFilePath(string path)
