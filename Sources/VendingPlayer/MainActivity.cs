@@ -99,6 +99,8 @@ namespace VendingPlayer
 
         private void OnError(object sender, MediaPlayer.ErrorEventArgs e)
         {
+            var t = Toast.MakeText(Application.Context, $"Error: {e.What.ToString()}", ToastLength.Long);
+            t.Show();
             ShowFilePickerDialog();
         }
 
